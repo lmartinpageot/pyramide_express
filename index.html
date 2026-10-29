@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pyramide Express - Jeu de Soirée Cyberpunk</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#090d16',
+                            card: '#131b2e',
+                            pink: '#ff007f',
+                            cyan: '#00f0ff',
+                            purple: '#8a2be2',
+                            yellow: '#ffe600',
+                            red: '#ff2a5f',
+                            green: '#00ff66'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-pink': '0 0 15px rgba(255, 0, 127, 0.6), 0 0 30px rgba(255, 0, 127, 0.2)',
+                        'neon-cyan': '0 0 15px rgba(0, 240, 255, 0.6), 0 0 30px rgba(0, 240, 255, 0.2)',
+                        'neon-purple': '0 0 15px rgba(138, 43, 226, 0.6), 0 0 30px rgba(138, 43, 226, 0.2)',
+                        'neon-yellow': '0 0 20px rgba(255, 230, 0, 0.7)'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: #090d16;
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(138, 43, 226, 0.25), transparent 70%),
+                radial-gradient(circle at 0% 100%, rgba(0, 240, 255, 0.15), transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(255, 0, 127, 0.15), transparent 50%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .font-cyber {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Glassmorphism Cyber Style */
+        .glass-panel {
+            background: rgba(19, 27, 46, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+        }
+
+        /* 3D Card Flip Animation */
+        .card-container {
+            perspective: 1000px;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card-container.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #182238, #0e1626);
+            border: 1.5px solid rgba(0, 240, 255, 0.4);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+        }
+
+        .card-back {
+            background: #ffffff;
+            color: #090d16;
+            transform: rotateY(180deg);
+            border: 2px solid #e2e8f0;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+        }
+
+        /* Timer progress bar animation */
+        @keyframes shrinkWidth {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+        .animate-timer {
+            animation: shrinkWidth 7s linear forwards;
+        }
+
+        /* Glow pulses */
+        @keyframes cyber-pulse {
+            0%, 100% { border-color: rgba(255, 0, 127, 0.8); box-shadow: 0 0 15px rgba(255, 0, 127, 0.5); }
+            50% { border-color: rgba(0, 240, 255, 0.8); box-shadow: 0 0 20px rgba(0, 240, 255, 0.6); }
+        }
+        .active-card-glow {
+            animation: cyber-pulse 1.8s infinite;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(9, 13, 22, 0.8); }
+        ::-webkit-scrollbar-thumb { background: #00f0ff; border-radius: 2px; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen justify-between overflow-x-hidden max-w-md mx-auto relative border-x border-slate-800/50 shadow-2xl">
+
+    <!-- HEADER / BARRE SUPÉRIEURE NATIVE -->
+    <header class="glass-panel sticky top-0 z-40 px-4 py-3 border-b border-cyber-cyan/20">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="confirmResetToHome()">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyber-pink to-cyber-purple flex items-center justify-center font-cyber font-black text-white text-xl shadow-neon-pink">
+                    ▲
+                </div>
+                <div>
+                    <h1 class="font-cyber font-black text-base tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyber-cyan via-purple-300 to-cyber-pink">
+                        PYRAMIDE <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyber-pink/20 text-cyber-pink font-bold border border-cyber-pink/30">EXPRESS</span>
+                    </h1>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-cyber-cyan transition-all border border-cyber-cyan/30" title="Activer/Désactiver le son">
+                    <i data-lucide="volume-2" class="w-4 h-4"></i>
+                </button>
+                <button onclick="openRulesModal()" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-purple-300 transition-all border border-purple-500/30" title="Règles du jeu">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ZONE DE CONTENU PRINCIPAL -->
+    <main class="flex-grow flex flex-col items-center justify-center p-4 w-full">
+        
+        <!-- ================= ECRAN 1: CONFIGURATION DE LA PARTIE ================= -->
+        <section id="setupScreen" class="w-full glass-panel rounded-3xl p-5 shadow-2xl flex flex-col justify-between my-auto border-cyber-cyan/30">
+            <div>
+                <div class="text-center mb-6">
+                    <span class="text-[11px] font-cyber font-bold text-cyber-cyan tracking-widest uppercase bg-cyber-cyan/10 px-3 py-1 rounded-full border border-cyber-cyan/30">Configuration Soirée</span>
+                    <h2 class="text-2xl font-cyber font-black text-white mt-2">PRÉPAREZ VOS VERRES 🍻</h2>
+                    <p class="text-slate-400 text-xs mt-1">Entrez les prénoms et choisissez la hauteur !</p>
+                </div>
+
+                <!-- Réglage Pyramide -->
+                <div class="mb-6 bg-slate-950/60 p-4 rounded-2xl border border-slate-800">
+                    <label class="block text-xs font-cyber font-bold text-cyber-cyan mb-2 flex items-center gap-1.5">
+                        <i data-lucide="layers" class="w-4 h-4"></i> ÉTAGES DE LA PYRAMIDE
+                    </label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="setPyramidHeight(3)" id="btnHeight3" class="height-btn py-2.5 rounded-xl border border-slate-800 font-bold text-xs text-center transition-all bg-slate-900 text-slate-400">
+                            3 Étages
+                            <span class="block text-[10px] font-normal text-slate-500 mt-0.5">(6 cartes)</span>
+                        </button>
+                        <button type="button" onclick="setPyramidHeight(4)" id="btnHeight4" class="height-btn py-2.5 rounded-xl border-2 border-cyber-cyan font-bold text-xs text-center transition-all bg-cyber-cyan/10 text-cyber-cyan shadow-neon-cyan">
+                            4 Étages
+                            <span class="block text-[10px] font-normal text-cyber-cyan/70 mt-0.5">(10 cartes)</span>
+                        </button>
+                        <button type="button" onclick="setPyramidHeight(5)" id="btnHeight5" class="height-btn py-2.5 rounded-xl border border-slate-800 font-bold text-xs text-center transition-all bg-slate-900 text-slate-400">
+                            5 Étages
+                            <span class="block text-[10px] font-normal text-slate-500 mt-0.5">(15 cartes)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Saisie Joueurs -->
+                <div class="mb-6">
+                    <label class="block text-xs font-cyber font-bold text-cyber-pink mb-2 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5"><i data-lucide="users" class="w-4 h-4"></i> JOUEURS (<span id="playerCount">0</span>)</span>
+                        <span class="text-[10px] text-slate-400">2 à 10 joueurs</span>
+                    </label>
+                    
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="playerInput" placeholder="Prénom du joueur..." maxlength="12"
+                            class="flex-grow bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyber-pink transition-colors"
+                            onkeypress="if(event.key === 'Enter') addPlayer()">
+                        <button onclick="addPlayer()" class="bg-gradient-to-r from-cyber-pink to-cyber-purple hover:opacity-90 text-white font-bold px-4 rounded-xl flex items-center justify-center shadow-neon-pink transition-all active:scale-95">
+                            <i data-lucide="user-plus" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Liste badges joueurs -->
+                    <div id="playersList" class="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-1">
+                        <!-- JS Fill -->
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="startGame()" id="startBtn" class="w-full py-4 rounded-2xl bg-gradient-to-r from-cyber-pink via-cyber-purple to-cyber-cyan text-white font-cyber font-black text-sm tracking-widest shadow-neon-pink transition-all active:scale-95 flex items-center justify-center gap-2">
+                <i data-lucide="play" class="w-5 h-5 fill-current"></i> LANCER LA SOIRÉE
+            </button>
+        </section>
+
+        <!-- ================= ECRAN 2: MEMORISATION DES CARTES ================= -->
+        <section id="memorizeScreen" class="w-full glass-panel rounded-3xl p-5 shadow-2xl hidden flex-col items-center justify-between my-auto border-purple-500/30">
+            <div class="text-center w-full">
+                <span class="text-[11px] font-cyber font-bold text-cyber-pink tracking-widest uppercase bg-cyber-pink/10 px-3 py-1 rounded-full border border-cyber-pink/30">Étape 1 : Mémorisation</span>
+                <h2 class="text-xl font-cyber font-black text-white mt-3">
+                    PASSE LE TÉLÉPHONE À
+                </h2>
+                <div id="currentMemorizePlayer" class="text-2xl font-cyber font-black text-cyber-cyan my-1 drop-shadow-md">
+                    JOUEUR
+                </div>
+                <p class="text-slate-400 text-xs">Les autres joueurs regardent ailleurs ! 🤫</p>
+            </div>
+
+            <!-- Zone de Révélation Sécurisée -->
+            <div class="w-full bg-slate-950/80 border border-slate-800 rounded-2xl p-4 text-center my-4 flex flex-col items-center">
+                <div id="secretCardCover" class="w-full py-8 flex flex-col items-center justify-center border border-dashed border-slate-700 rounded-xl bg-slate-900/50">
+                    <i data-lucide="shield-alert" class="w-10 h-10 text-cyber-purple mb-2 animate-bounce"></i>
+                    <p class="text-slate-300 text-xs font-semibold mb-3">Tes 4 cartes secrètes sont cachées</p>
+                    <button onclick="revealPlayerCards()" class="px-5 py-3 rounded-xl bg-gradient-to-r from-cyber-purple to-cyber-pink text-white font-cyber font-bold text-xs shadow-neon-purple active:scale-95 transition-all">
+                        👀 AFFICHER MES CARTES
+                    </button>
+                </div>
+
+                <div id="secretCardsArea" class="hidden w-full">
+                    <!-- Timer avec Jauge Progress Bar -->
+                    <div class="w-full mb-3">
+                        <div class="flex justify-between items-center text-[11px] text-cyber-yellow font-bold mb-1">
+                            <span><i data-lucide="clock" class="w-3.5 h-3.5 inline mr-1"></i> Mémorise bien !</span>
+                            <span id="memorizeTimerText">7s</span>
+                        </div>
+                        <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                            <div id="timerProgressBar" class="bg-gradient-to-r from-cyber-yellow to-cyber-pink h-full w-full"></div>
+                        </div>
+                    </div>
+
+                    <!-- Grille 4 cartes du joueur -->
+                    <div id="playerCardsGrid" class="grid grid-cols-4 gap-2 w-full my-2">
+                        <!-- JS Fill -->
+                    </div>
+
+                    <button onclick="hidePlayerCards()" class="mt-2 text-xs bg-slate-900 hover:bg-slate-800 text-slate-400 px-3 py-1.5 rounded-lg border border-slate-800 w-full">
+                        Cacher maintenant
+                    </button>
+                </div>
+            </div>
+
+            <button id="nextPlayerBtn" onclick="nextMemorizePlayer()" disabled class="w-full py-3.5 rounded-xl bg-slate-900 text-slate-600 font-cyber font-bold text-xs transition-all flex items-center justify-center gap-2">
+                JOUEUR SUIVANT <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+        </section>
+
+        <!-- ================= ECRAN 3: PLATEAU PYRAMIDE ================= -->
+        <section id="gameScreen" class="w-full hidden flex-col items-center">
+            
+            <!-- Barre d'infos dynamique -->
+            <div class="w-full glass-panel rounded-2xl p-3 mb-3 flex items-center justify-between gap-2 border-cyber-cyan/30">
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-cyber font-bold px-2 py-1 rounded-lg bg-cyber-cyan/10 text-cyber-cyan border border-cyber-cyan/30">
+                        Étage <span id="currentLevelDisplay">1</span> / <span id="totalLevelsDisplay">4</span>
+                    </span>
+                    <span class="text-[11px] font-cyber font-bold px-2 py-1 rounded-lg bg-cyber-pink/10 text-cyber-pink border border-cyber-pink/30 flex items-center gap-1">
+                        <i data-lucide="beer" class="w-3.5 h-3.5"></i> <span id="gorgeesDisplay">1</span> Gorgée(s)
+                    </span>
+                </div>
+                
+                <div class="flex items-center gap-1.5">
+                    <button onclick="toggleScoresModal()" class="text-[11px] font-bold px-2.5 py-1.5 rounded-xl bg-slate-900 text-cyber-yellow border border-cyber-yellow/30 flex items-center gap-1">
+                        <i data-lucide="trophy" class="w-3.5 h-3.5"></i> Scores
+                    </button>
+                </div>
+            </div>
+
+            <!-- LA PYRAMIDE DE CARTES -->
+            <div class="w-full glass-panel rounded-3xl p-3 sm:p-4 mb-3 flex flex-col items-center justify-center overflow-hidden min-h-[320px] border-cyber-cyan/20" id="pyramidContainer">
+                <!-- JS Fill -->
+            </div>
+
+            <!-- CONTROLES DU JEU -->
+            <div class="w-full glass-panel rounded-2xl p-3 flex flex-col items-center justify-between gap-2 border-cyber-pink/20" id="gameControls">
+                <p id="gameStatusText" class="text-xs font-semibold text-slate-300 text-center">
+                    Cliquez sur la carte disponible tout en bas de la pyramide.
+                </p>
+
+                <button id="giveSipsBtn" onclick="openGiveSipsModal()" disabled class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyber-pink to-cyber-purple text-white font-cyber font-bold text-xs shadow-lg opacity-40 cursor-not-allowed transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="flame" class="w-4 h-4"></i> ANNONCER / DISTRIBUER
+                </button>
+            </div>
+        </section>
+
+        <!-- ================= ECRAN 4: FIN DE PARTIE & STATISTIQUES ================= -->
+        <section id="endScreen" class="w-full glass-panel rounded-3xl p-5 shadow-2xl hidden flex-col items-center text-center border-cyber-yellow/40 my-auto">
+            <div class="w-16 h-16 rounded-2xl bg-cyber-yellow/10 border border-cyber-yellow flex items-center justify-center text-cyber-yellow mb-3 shadow-neon-yellow animate-bounce">
+                <i data-lucide="crown" class="w-8 h-8"></i>
+            </div>
+            
+            <h2 class="text-2xl font-cyber font-black text-white mb-1">PARTIE TERMINÉE ! 🎉</h2>
+            <p class="text-slate-400 text-xs mb-4">Voici le bilan d'alcoolémie et de bluff de la soirée !</p>
+
+            <!-- Trophées spéciaux -->
+            <div class="grid grid-cols-2 gap-2 w-full mb-4">
+                <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-left">
+                    <span class="text-[10px] font-cyber text-cyber-pink flex items-center gap-1"><i data-lucide="skull" class="w-3 h-3"></i> PIGEON DE LA SOIRÉE</span>
+                    <p id="trophyPigeon" class="font-bold text-white text-xs mt-1">-</p>
+                </div>
+                <div class="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 text-left">
+                    <span class="text-[10px] font-cyber text-cyber-cyan flex items-center gap-1"><i data-lucide="sparkles" class="w-3 h-3"></i> ROI DU BLUFF</span>
+                    <p id="trophyBluffer" class="font-bold text-white text-xs mt-1">-</p>
+                </div>
+            </div>
+
+            <!-- Leaderboard -->
+            <div class="w-full bg-slate-950/80 rounded-2xl p-3 border border-slate-800 mb-4 max-h-48 overflow-y-auto">
+                <div id="finalScoresList" class="space-y-1.5 text-left">
+                    <!-- JS Fill -->
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 w-full">
+                <button onclick="replaySamePlayers()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyber-pink to-cyber-purple text-white font-cyber font-bold text-xs shadow-neon-pink">
+                    🔄 REJOUER MÊME GROUPE
+                </button>
+                <button onclick="resetToHome()" class="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 font-cyber font-bold text-xs">
+                    ⚙️ NOUVELLE CONFIGURATION
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ================= MODALS INTERACTIVES ================= -->
+
+    <!-- MODAL : RÈGLES DU JEU -->
+    <div id="rulesModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-sm w-full rounded-3xl p-5 border border-cyber-cyan/30 max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-base font-cyber font-black text-white flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-4 h-4 text-cyber-pink"></i> Règles Pyramide Express
+                </h3>
+                <button onclick="closeRulesModal()" class="p-1 rounded-lg text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-300">
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-cyber-pink mb-0.5">1. Mémorisation</h4>
+                    <p>4 cartes secrètes par joueur en début de partie. Mémorise-les bien avant la fin du décompte !</p>
+                </div>
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-cyber-cyan mb-0.5">2. Pyramide & Gorgées</h4>
+                    <p>On retourne les cartes du bas vers le haut. Étage 1 = 1 gorgée, Étage N = N gorgées.</p>
+                </div>
+                <div class="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                    <h4 class="font-bold text-cyber-yellow mb-0.5">3. Annonce & Contestations</h4>
+                    <p>Pour chaque carte révélée, prétends l'avoir et donne des gorgées. La cible peut :</p>
+                    <ul class="list-disc list-inside mt-1 space-y-0.5 text-slate-400">
+                        <li><strong>Boire</strong> sans vérifier.</li>
+                        <li><strong>Dénoncer le bluff !</strong> Si le donneur prouve la carte dans sa main, l'accusateur boit <strong>LE DOUBLE</strong>. Sinon, le menteur boit <strong>LE DOUBLE</strong> !</li>
+                    </ul>
+                </div>
+            </div>
+
+            <button onclick="closeRulesModal()" class="w-full mt-4 py-3 rounded-xl bg-cyber-purple text-white font-cyber font-bold text-xs">
+                COMPRIS !
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL : ANNONCES & BLUFF INTERACTIF -->
+    <div id="actionModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-sm w-full rounded-3xl p-5 border border-cyber-pink/40 shadow-2xl">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-cyber font-black text-white flex items-center gap-1.5">
+                    <i data-lucide="beer" class="w-4 h-4 text-cyber-pink"></i> ANNONCE & GORGÉES
+                </h3>
+                <button onclick="closeActionModal()" class="p-1 text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div class="text-center p-2.5 rounded-xl bg-purple-950/50 border border-cyber-purple/30">
+                    <p class="text-[10px] text-purple-300 font-cyber">CARTE SUR LA PYRAMIDE</p>
+                    <p id="modalActiveCardVal" class="text-xl font-cyber font-black text-cyber-pink mt-0.5">8 de Cœur</p>
+                    <p class="text-[11px] text-slate-400">Valeur : <span id="modalSipsCount" class="font-bold text-cyber-yellow">1</span> gorgée(s)</p>
+                </div>
+
+                <!-- Étape A : Qui donne à qui -->
+                <div id="actionStep1">
+                    <label class="block text-[11px] font-bold text-slate-300 mb-1">1. Qui prétend avoir la carte ?</label>
+                    <select id="giverSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none mb-2.5 focus:border-cyber-pink">
+                        <!-- JS Fill -->
+                    </select>
+
+                    <label class="block text-[11px] font-bold text-slate-300 mb-1">2. À qui donne-t-il les gorgées ?</label>
+                    <select id="receiverSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none mb-3 focus:border-cyber-pink">
+                        <!-- JS Fill -->
+                    </select>
+
+                    <button onclick="goToBluffStep()" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyber-pink to-cyber-purple text-white font-cyber font-bold text-xs shadow-neon-pink">
+                        VALIDER L'ANNONCE →
+                    </button>
+                </div>
+
+                <!-- Étape B : Acceptation ou Dénonciation -->
+                <div id="actionStep2" class="hidden">
+                    <div class="text-center my-2 p-2.5 bg-slate-950 rounded-xl border border-slate-800">
+                        <p class="text-xs font-semibold text-white">
+                            <span id="txtGiver" class="text-cyber-pink font-bold">A</span> donne <span id="txtSips" class="font-bold text-cyber-yellow">1</span> gorgée(s) à <span id="txtReceiver" class="text-cyber-cyan font-bold">B</span>.
+                        </p>
+                    </div>
+
+                    <p class="text-[11px] text-center text-slate-400 mb-3">Réaction de <span id="txtReceiverChoice" class="text-cyber-cyan font-bold">B</span> :</p>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="resolveAction(false)" class="py-3 px-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-bold flex flex-col items-center justify-center gap-1 active:scale-95">
+                            <span>🍺 BOIRE</span>
+                            <span class="text-[9px] text-slate-500 font-normal">Accepter la sentence</span>
+                        </button>
+                        <button onclick="goToHandProofStep()" class="py-3 px-2 rounded-xl bg-gradient-to-r from-cyber-red to-cyber-pink text-white text-xs font-bold shadow-lg flex flex-col items-center justify-center gap-1 active:scale-95">
+                            <span>🕵️ MENTEUR !</span>
+                            <span class="text-[9px] text-pink-200 font-normal">Contester le bluff</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Étape C : Sélection de la carte par le donneur (Proof) -->
+                <div id="actionStepHandProof" class="hidden">
+                    <p class="text-xs text-slate-300 font-semibold mb-2 text-center">
+                        <span id="txtProofGiverName" class="text-cyber-pink font-bold">Donneur</span>, clique sur la carte de ta main que tu prétends être le <span id="txtTargetVal" class="text-cyber-yellow font-bold">8</span> :
+                    </p>
+
+                    <!-- Grille cartes masquées/révélables de la main du donneur -->
+                    <div id="giverCardsProofGrid" class="grid grid-cols-4 gap-1.5 my-3">
+                        <!-- JS Fill -->
+                    </div>
+
+                    <p class="text-[10px] text-slate-500 text-center">Si tu n'en as aucune, clique sur la carte de ton choix (ton bluff sera démasqué !).</p>
+                </div>
+
+                <!-- Étape D : Résultat de la vérification -->
+                <div id="actionStep3" class="hidden text-center space-y-3">
+                    <div id="verificationResultBox" class="p-3.5 rounded-xl text-center">
+                        <!-- JS Fill -->
+                    </div>
+                    <button onclick="closeActionModal()" class="w-full py-3 rounded-xl bg-cyber-purple text-white font-cyber font-bold text-xs">
+                        CONTINUER LA PYRAMIDE
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL : TABLEAU DES SCORES EN COURS -->
+    <div id="scoresModal" class="fixed inset-0 z-50 bg-black/85 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass-card max-w-xs w-full rounded-3xl p-4 border border-cyber-yellow/30">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-sm font-cyber font-black text-white flex items-center gap-1.5">
+                    <i data-lucide="trophy" class="w-4 h-4 text-cyber-yellow"></i> SCORE SOIRÉE
+                </h3>
+                <button onclick="toggleScoresModal()" class="p-1 text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div id="currentScoresList" class="space-y-1.5 mb-3 max-h-60 overflow-y-auto">
+                <!-- JS Fill -->
+            </div>
+
+            <button onclick="toggleScoresModal()" class="w-full py-2.5 rounded-xl bg-slate-900 text-slate-300 font-cyber font-bold text-xs">
+                FERMER
+            </button>
+        </div>
+    </div>
+
+    <!-- MOTEUR AUDIO AUDIO CONTEXT (0 FICHIER EXTERNE) -->
+    <script>
+        class CyberSoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+            }
+
+            playFlip() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(350, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(750, this.ctx.currentTime + 0.07);
+
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.07);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.07);
+            }
+
+            playSuccess() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.setValueAtTime(659.25, now + 0.08);
+                osc.frequency.setValueAtTime(783.99, now + 0.16);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(now + 0.35);
+            }
+
+            playFail() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(280, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+
+                gain.gain.setValueAtTime(0.25, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(now + 0.25);
+            }
+        }
+
+        const soundEngine = new CyberSoundEngine();
+
+        function toggleSound() {
+            soundEngine.enabled = !soundEngine.enabled;
+            const btn = document.getElementById('soundToggleBtn');
+            if (soundEngine.enabled) {
+                btn.innerHTML = '<i data-lucide="volume-2" class="w-4 h-4 text-cyber-cyan"></i>';
+                soundEngine.playSuccess();
+            } else {
+                btn.innerHTML = '<i data-lucide="volume-x" class="w-4 h-4 text-cyber-red"></i>';
+            }
+            lucide.createIcons();
+        }
+    </script>
+
+    <!-- LOGIQUE ET ETATS DU JEU -->
+    <script>
+        const SUITS = [
+            { symbol: '♠', color: 'text-slate-900', name: 'Pique' },
+            { symbol: '♥', color: 'text-red-600', name: 'Cœur' },
+            { symbol: '♦', color: 'text-red-600', name: 'Carreau' },
+            { symbol: '♣', color: 'text-slate-900', name: 'Trèfle' }
+        ];
+
+        const VALUES = [
+            { code: '2', name: '2' }, { code: '3', name: '3' }, { code: '4', name: '4' },
+            { code: '5', name: '5' }, { code: '6', name: '6' }, { code: '7', name: '7' },
+            { code: '8', name: '8' }, { code: '9', name: '9' }, { code: '10', name: '10' },
+            { code: 'J', name: 'Valet' }, { code: 'Q', name: 'Dame' },
+            { code: 'K', name: 'Roi' }, { code: 'A', name: 'As' }
+        ];
+
+        let state = {
+            pyramidHeight: 4,
+            players: [], // { id, name, cards: [], drunkSips: 0, givenSips: 0, successfulBluffs: 0, failedBluffs: 0 }
+            deck: [],
+            pyramidCards: [], // { id, card, level, revealed: false }
+            currentMemorizeIndex: 0,
+            activePyramidCardIndex: -1,
+            memorizeTimerId: null
+        };
+
+        window.onload = () => {
+            lucide.createIcons();
+            // Pre-fill demo players for quick start
+            addPlayerName('Alex');
+            addPlayerName('Sarah');
+            addPlayerName('Hugo');
+        };
+
+        function setPyramidHeight(h) {
+            state.pyramidHeight = h;
+            document.querySelectorAll('.height-btn').forEach(btn => {
+                btn.classList.remove('border-2', 'border-cyber-cyan', 'bg-cyber-cyan/10', 'text-cyber-cyan', 'shadow-neon-cyan');
+                btn.classList.add('border-slate-800', 'bg-slate-900', 'text-slate-400');
+            });
+
+            const activeBtn = document.getElementById(`btnHeight${h}`);
+            activeBtn.classList.remove('border-slate-800', 'bg-slate-900', 'text-slate-400');
+            activeBtn.classList.add('border-2', 'border-cyber-cyan', 'bg-cyber-cyan/10', 'text-cyber-cyan', 'shadow-neon-cyan');
+            soundEngine.playFlip();
+        }
+
+        function addPlayer() {
+            const input = document.getElementById('playerInput');
+            const name = input.value.trim();
+            if (name) {
+                if (state.players.length >= 10) {
+                    alert("Maximum 10 joueurs pour une soirée !");
+                    return;
+                }
+                addPlayerName(name);
+                input.value = '';
+                soundEngine.playFlip();
+            }
+        }
+
+        function addPlayerName(name) {
+            state.players.push({
+                id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                name: name,
+                cards: [],
+                drunkSips: 0,
+                givenSips: 0,
+                successfulBluffs: 0,
+                failedBluffs: 0
+            });
+            renderPlayersList();
+        }
+
+        function removePlayer(id) {
+            state.players = state.players.filter(p => p.id !== id);
+            renderPlayersList();
+            soundEngine.playFlip();
+        }
+
+        function renderPlayersList() {
+            const list = document.getElementById('playersList');
+            document.getElementById('playerCount').innerText = state.players.length;
+            list.innerHTML = '';
+
+            state.players.forEach(p => {
+                const chip = document.createElement('div');
+                chip.className = 'flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1 rounded-xl text-xs font-semibold text-cyber-cyan shadow-sm';
+                chip.innerHTML = `
+                    <span>${escapeHtml(p.name)}</span>
+                    <button onclick="removePlayer('${p.id}')" class="text-slate-500 hover:text-cyber-pink transition-colors">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                `;
+                list.appendChild(chip);
+            });
+            lucide.createIcons();
+
+            const startBtn = document.getElementById('startBtn');
+            if (state.players.length >= 2) {
+                startBtn.disabled = false;
+                startBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+            } else {
+                startBtn.disabled = true;
+                startBtn.classList.add('opacity-40', 'cursor-not-allowed');
+            }
+        }
+
+        function createDeck() {
+            let deck = [];
+            SUITS.forEach(suit => {
+                VALUES.forEach((val, idx) => {
+                    deck.push({
+                        suit: suit.symbol,
+                        color: suit.color,
+                        suitName: suit.name,
+                        value: val.code,
+                        valueName: val.name,
+                        rank: idx + 2
+                    });
+                });
+            });
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            return deck;
+        }
+
+        // --- PHASE 1 : DEMARRAGE & MEMORISATION ---
+        function startGame() {
+            if (state.players.length < 2) return;
+
+            soundEngine.playSuccess();
+            state.deck = createDeck();
+
+            state.players.forEach(p => {
+                p.cards = [state.deck.pop(), state.deck.pop(), state.deck.pop(), state.deck.pop()];
+                p.drunkSips = 0;
+                p.givenSips = 0;
+                p.successfulBluffs = 0;
+                p.failedBluffs = 0;
+            });
+
+            // Build Pyramid Cards
+            state.pyramidCards = [];
+            let cardIndex = 0;
+            for (let level = 1; level <= state.pyramidHeight; level++) {
+                for (let pos = 0; pos < level; pos++) {
+                    state.pyramidCards.push({
+                        id: cardIndex,
+                        card: state.deck.pop(),
+                        level: level,
+                        revealed: false
+                    });
+                    cardIndex++;
+                }
+            }
+
+            state.currentMemorizeIndex = 0;
+            showScreen('memorizeScreen');
+            setupMemorizePlayer();
+        }
+
+        function setupMemorizePlayer() {
+            const player = state.players[state.currentMemorizeIndex];
+            document.getElementById('currentMemorizePlayer').innerText = player.name;
+            document.getElementById('secretCardCover').classList.remove('hidden');
+            document.getElementById('secretCardsArea').classList.add('hidden');
+            
+            const nextBtn = document.getElementById('nextPlayerBtn');
+            nextBtn.disabled = true;
+            nextBtn.className = "w-full py-3.5 rounded-xl bg-slate-900 text-slate-600 font-cyber font-bold text-xs transition-all flex items-center justify-center gap-2";
+            
+            if (state.memorizeTimerId) clearInterval(state.memorizeTimerId);
+        }
+
+        function revealPlayerCards() {
+            soundEngine.playFlip();
+            const player = state.players[state.currentMemorizeIndex];
+            document.getElementById('secretCardCover').classList.add('hidden');
+            document.getElementById('secretCardsArea').classList.remove('hidden');
+
+            const grid = document.getElementById('playerCardsGrid');
+            grid.innerHTML = '';
+
+            player.cards.forEach(card => {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'bg-white rounded-xl p-2 text-center border border-slate-200 shadow-md flex flex-col items-center justify-between aspect-[2/3]';
+                cardEl.innerHTML = `
+                    <span class="text-[10px] font-bold ${card.color} self-start">${card.value}</span>
+                    <span class="text-xl ${card.color}">${card.suit}</span>
+                    <span class="text-[10px] font-bold ${card.color} self-end">${card.value}</span>
+                `;
+                grid.appendChild(cardEl);
+            });
+
+            // Reset progress bar animation
+            const bar = document.getElementById('timerProgressBar');
+            bar.classList.remove('animate-timer');
+            void bar.offsetWidth; // trigger reflow
+            bar.classList.add('animate-timer');
+
+            let timeLeft = 7;
+            const timerDisplay = document.getElementById('memorizeTimerText');
+            timerDisplay.innerText = timeLeft + 's';
+
+            if (state.memorizeTimerId) clearInterval(state.memorizeTimerId);
+
+            state.memorizeTimerId = setInterval(() => {
+                timeLeft--;
+                timerDisplay.innerText = timeLeft + 's';
+                if (timeLeft <= 0) {
+                    clearInterval(state.memorizeTimerId);
+                    hidePlayerCards();
+                }
+            }, 1000);
+        }
+
+        function hidePlayerCards() {
+            if (state.memorizeTimerId) clearInterval(state.memorizeTimerId);
+            soundEngine.playFlip();
+
+            document.getElementById('secretCardCover').classList.remove('hidden');
+            document.getElementById('secretCardsArea').classList.add('hidden');
+
+            const nextBtn = document.getElementById('nextPlayerBtn');
+            nextBtn.disabled = false;
+            nextBtn.className = "w-full py-3.5 rounded-xl bg-gradient-to-r from-cyber-pink to-cyber-purple text-white font-cyber font-bold text-xs shadow-neon-pink hover:scale-[1.02] transition-all flex items-center justify-center gap-2";
+        }
+
+        function nextMemorizePlayer() {
+            state.currentMemorizeIndex++;
+            if (state.currentMemorizeIndex < state.players.length) {
+                setupMemorizePlayer();
+            } else {
+                startPyramidBoard();
+            }
+        }
+
+        // --- PHASE 2 : LA PYRAMIDE ---
+        function startPyramidBoard() {
+            showScreen('gameScreen');
+            document.getElementById('totalLevelsDisplay').innerText = state.pyramidHeight;
+            renderPyramidGrid();
+            updateGameControls();
+        }
+
+        function renderPyramidGrid() {
+            const container = document.getElementById('pyramidContainer');
+            container.innerHTML = '';
+
+            // Draw level by level (from top = level N to bottom = level 1)
+            for (let level = state.pyramidHeight; level >= 1; level--) {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'flex justify-center items-center gap-1.5 sm:gap-3 my-1 w-full';
+
+                const levelCards = state.pyramidCards.filter(c => c.level === level);
+
+                levelCards.forEach(pCard => {
+                    const cardWrap = document.createElement('div');
+                    cardWrap.className = `card-container w-12 h-16 sm:w-16 sm:h-22 cursor-pointer ${pCard.revealed ? 'flipped' : ''}`;
+                    cardWrap.onclick = () => revealPyramidCard(pCard.id);
+
+                    const sipVal = (state.pyramidHeight - level + 1);
+
+                    cardWrap.innerHTML = `
+                        <div class="card-inner">
+                            <div class="card-front rounded-xl flex flex-col items-center justify-center ${pCard.id === state.activePyramidCardIndex ? 'active-card-glow' : ''}">
+                                <span class="text-xs font-cyber font-black text-cyber-pink">▲</span>
+                                <span class="text-[9px] text-cyber-cyan font-bold mt-0.5">${sipVal}🍺</span>
+                            </div>
+                            <div class="card-back rounded-xl p-1 flex flex-col items-center justify-between">
+                                <span class="text-[9px] font-bold ${pCard.card.color} self-start">${pCard.card.value}</span>
+                                <span class="text-base sm:text-xl ${pCard.card.color}">${pCard.card.suit}</span>
+                                <span class="text-[9px] font-bold ${pCard.card.color} self-end">${pCard.card.value}</span>
+                            </div>
+                        </div>
+                    `;
+                    rowEl.appendChild(cardWrap);
+                });
+
+                container.appendChild(rowEl);
+            }
+        }
+
+        function revealPyramidCard(id) {
+            const pCard = state.pyramidCards.find(c => c.id === id);
+            if (!pCard || pCard.revealed) return;
+
+            // Enforce bottom to top order
+            const unrevealedLevels = state.pyramidCards.filter(c => !c.revealed).map(c => c.level);
+            const minUnrevealedLevel = Math.min(...unrevealedLevels);
+
+            if (pCard.level > minUnrevealedLevel) {
+                document.getElementById('gameStatusText').innerText = `⚠️ Retournez d'abord les cartes de l'étage du bas !`;
+                soundEngine.playFail();
+                return;
+            }
+
+            pCard.revealed = true;
+            state.activePyramidCardIndex = id;
+            soundEngine.playFlip();
+
+            renderPyramidGrid();
+            updateGameControls();
+        }
+
+        function updateGameControls() {
+            const activeCardObj = state.pyramidCards.find(c => c.id === state.activePyramidCardIndex);
+            const giveBtn = document.getElementById('giveSipsBtn');
+            const statusTxt = document.getElementById('gameStatusText');
+
+            if (activeCardObj && activeCardObj.revealed) {
+                const sipValue = (state.pyramidHeight - activeCardObj.level + 1);
+                document.getElementById('currentLevelDisplay').innerText = sipValue;
+                document.getElementById('gorgeesDisplay').innerText = sipValue;
+
+                statusTxt.innerHTML = `Carte active : <span class="text-cyber-pink font-bold">${activeCardObj.card.value} de ${activeCardObj.card.suitName}</span> (${sipValue} gorgée(s)).`;
+                
+                giveBtn.disabled = false;
+                giveBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+                giveBtn.classList.add('shadow-neon-pink');
+            } else {
+                statusTxt.innerText = "Cliquez sur la carte disponible tout en bas de la pyramide.";
+                giveBtn.disabled = true;
+                giveBtn.classList.add('opacity-40', 'cursor-not-allowed');
+                giveBtn.classList.remove('shadow-neon-pink');
+            }
+
+            if (state.pyramidCards.every(c => c.revealed)) {
+                setTimeout(() => {
+                    showEndGameScreen();
+                }, 1500);
+            }
+        }
+
+        // --- INTERACTION ANNONCE / CONTESTATION ---
+        function openGiveSipsModal() {
+            const activeCardObj = state.pyramidCards.find(c => c.id === state.activePyramidCardIndex);
+            if (!activeCardObj) return;
+
+            const sipValue = (state.pyramidHeight - activeCardObj.level + 1);
+            document.getElementById('modalActiveCardVal').innerText = `${activeCardObj.card.value} de ${activeCardObj.card.suitName} ${activeCardObj.card.suit}`;
+            document.getElementById('modalSipsCount').innerText = sipValue;
+
+            const giverSel = document.getElementById('giverSelect');
+            const receiverSel = document.getElementById('receiverSelect');
+            giverSel.innerHTML = '';
+            receiverSel.innerHTML = '';
+
+            state.players.forEach(p => {
+                giverSel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
+                receiverSel.innerHTML += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
+            });
+
+            if (state.players.length > 1) {
+                receiverSel.selectedIndex = 1;
+            }
+
+            document.getElementById('actionStep1').classList.remove('hidden');
+            document.getElementById('actionStep2').classList.add('hidden');
+            document.getElementById('actionStepHandProof').classList.add('hidden');
+            document.getElementById('actionStep3').classList.add('hidden');
+
+            document.getElementById('actionModal').classList.remove('hidden');
+        }
+
+        function closeActionModal() {
+            document.getElementById('actionModal').classList.add('hidden');
+        }
+
+        function goToBluffStep() {
+            const giverId = document.getElementById('giverSelect').value;
+            const receiverId = document.getElementById('receiverSelect').value;
+
+            if (giverId === receiverId) {
+                alert("Impossible de donner des gorgées à soi-même !");
+                return;
+            }
+
+            const giver = state.players.find(p => p.id === giverId);
+            const receiver = state.players.find(p => p.id === receiverId);
+            const activeCardObj = state.pyramidCards.find(c => c.id === state.activePyramidCardIndex);
+            const sips = (state.pyramidHeight - activeCardObj.level + 1);
+
+            document.getElementById('txtGiver').innerText = giver.name;
+            document.getElementById('txtReceiver').innerText = receiver.name;
+            document.getElementById('txtReceiverChoice').innerText = receiver.name;
+            document.getElementById('txtSips').innerText = sips;
+
+            document.getElementById('actionStep1').classList.add('hidden');
+            document.getElementById('actionStep2').classList.remove('hidden');
+        }
+
+        function goToHandProofStep() {
+            const giverId = document.getElementById('giverSelect').value;
+            const giver = state.players.find(p => p.id === giverId);
+            const activeCardObj = state.pyramidCards.find(c => c.id === state.activePyramidCardIndex);
+
+            document.getElementById('txtProofGiverName').innerText = giver.name;
+            document.getElementById('txtTargetVal').innerText = activeCardObj.card.value;
+
+            const grid = document.getElementById('giverCardsProofGrid');
+            grid.innerHTML = '';
+
+            // Render 4 cards of giver face down initially for the test
+            giver.cards.forEach((card, idx) => {
+                const cardBtn = document.createElement('button');
+                cardBtn.className = "bg-slate-900 border border-slate-700 rounded-xl p-2 text-center flex flex-col items-center justify-between aspect-[2/3] hover:border-cyber-pink transition-all active:scale-95";
+                cardBtn.onclick = () => verifyChosenGiverCard(idx);
+                cardBtn.innerHTML = `
+                    <span class="text-[10px] font-cyber text-cyber-cyan">#${idx+1}</span>
+                    <span class="text-lg text-slate-500">❓</span>
+                    <span class="text-[9px] text-slate-600">Carte</span>
+                `;
+                grid.appendChild(cardBtn);
+            });
+
+            document.getElementById('actionStep2').classList.add('hidden');
+            document.getElementById('actionStepHandProof').classList.remove('hidden');
+        }
+
+        function resolveAction(isAccused) {
+            // When target drinks directly without checking
+            const giverId = document.getElementById('giverSelect').value;
+            const receiverId = document.getElementById('receiverSelect').value;
+            const giver = state.players.find(p => p.id === giverId);
+            const receiver = state.players.find(p => p.id === receiverId);
+            const activeCardObj = state.pyramidCards.find(c => c.id === state.activePyramidCardIndex);
+            const baseSips = (state.pyramidHeight - activeCardObj.level + 1);
+
+            receiver.drunkSips += baseSips;
+            giver.givenSips += baseSips;
+
+            soundEngine.playSuccess();
+            const resultBox = document.getElementById('verificationResultBox');
+            resultBox.className = "p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-white";
+            resultBox.innerHTML = `
+                <p class="font-bold text-sm text-cyber-cyan">🍺 Sentence Acceptée</p>
+                <p class="text-xs mt-1"><span class="font-bold text-cyber-pink">${receiver.name}</span> boit <strong>${baseSips} gorgée(s)</strong> sans broncher !</p>
+            `;
+
+            document.getElementById('actionStep2').classList.add('hidden');
+            document.getElementById('actionStep3').classList.remove('hidden');
+        }
+
+        function verifyChosenGiverCard(cardIdx) {
+            const giverId = document.getElementById('giverSelect').value;
+            const receiverId = document.getElementById('receiverSelect').value;
+            const giver = state.players.find(p => p.id === giverId);
+            const receiver = state.players.find(p => p.id === receiverId);
+
+            const activeCardObj = state.pyramidCards.find(c => c.id === state.activePyramidCardIndex);
+            const baseSips = (state.pyramidHeight - activeCardObj.level + 1);
+            const doubleSips = baseSips * 2;
+
+            const chosenCard = giver.cards[cardIdx];
+            const isMatch = (chosenCard.value === activeCardObj.card.value);
+
+            const resultBox = document.getElementById('verificationResultBox');
+
+            if (isMatch) {
+                // Real card! Accuser drinks double!
+                receiver.drunkSips += doubleSips;
+                giver.givenSips += doubleSips;
+                giver.successfulBluffs++;
+
+                soundEngine.playFail();
+                resultBox.className = "p-3.5 rounded-xl bg-cyber-red/20 border border-cyber-red/50 text-white";
+                resultBox.innerHTML = `
+                    <p class="font-cyber font-black text-base text-cyber-red">💥 VRAIE CARTE !</p>
+                    <p class="text-xs mt-1">
+                        La carte #${cardIdx+1} était bien un <span class="font-bold text-cyber-yellow">${chosenCard.value} de ${chosenCard.suitName}</span> !
+                    </p>
+                    <p class="text-xs font-bold text-cyber-yellow mt-2">
+                        😱 ${receiver.name} a douté à tort et boit LE DOUBLE : <u>${doubleSips} gorgées</u> !
+                    </p>
+                `;
+            } else {
+                // Bluff caught! Giver drinks double!
+                giver.drunkSips += doubleSips;
+                giver.failedBluffs++;
+
+                soundEngine.playSuccess();
+                resultBox.className = "p-3.5 rounded-xl bg-cyber-yellow/20 border border-cyber-yellow/50 text-white";
+                resultBox.innerHTML = `
+                    <p class="font-cyber font-black text-base text-cyber-yellow">🎭 MENTEUR DÉMASQUÉ !</p>
+                    <p class="text-xs mt-1">
+                        La carte #${cardIdx+1} était un <span class="font-bold text-white">${chosenCard.value} de ${chosenCard.suitName}</span> (Pas un ${activeCardObj.card.value}) !
+                    </p>
+                    <p class="text-xs font-bold text-cyber-pink mt-2">
+                        🔥 ${giver.name} s'est fait attraper et boit LE DOUBLE : <u>${doubleSips} gorgées</u> !
+                    </p>
+                `;
+            }
+
+            document.getElementById('actionStepHandProof').classList.add('hidden');
+            document.getElementById('actionStep3').classList.remove('hidden');
+        }
+
+        // --- SCORES & ECRAN DE FIN ---
+        function toggleScoresModal() {
+            const modal = document.getElementById('scoresModal');
+            const list = document.getElementById('currentScoresList');
+            list.innerHTML = '';
+
+            state.players.forEach(p => {
+                list.innerHTML += `
+                    <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
+                        <span class="font-bold text-white">${escapeHtml(p.name)}</span>
+                        <div class="flex gap-1.5 text-[10px]">
+                            <span class="px-2 py-0.5 rounded bg-cyber-pink/20 text-cyber-pink font-semibold">${p.drunkSips} 🍺</span>
+                            <span class="px-2 py-0.5 rounded bg-cyber-cyan/20 text-cyber-cyan font-semibold">${p.givenSips} 🎯</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            modal.classList.toggle('hidden');
+        }
+
+        function showEndGameScreen() {
+            showScreen('endScreen');
+            soundEngine.playSuccess();
+
+            // Find Trophies
+            const mostDrunk = [...state.players].sort((a,b) => b.drunkSips - a.drunkSips)[0];
+            const bestBluffer = [...state.players].sort((a,b) => b.successfulBluffs - a.successfulBluffs)[0];
+
+            document.getElementById('trophyPigeon').innerText = `${mostDrunk.name} (${mostDrunk.drunkSips} 🍺)`;
+            document.getElementById('trophyBluffer').innerText = `${bestBluffer.name} (${bestBluffer.givenSips} 🎯)`;
+
+            const container = document.getElementById('finalScoresList');
+            container.innerHTML = '';
+
+            const sorted = [...state.players].sort((a, b) => b.drunkSips - a.drunkSips);
+
+            sorted.forEach((p, idx) => {
+                let badge = `${idx + 1}.`;
+                if (idx === 0) badge = '👑';
+                if (idx === 1) badge = '🥈';
+                if (idx === 2) badge = '🥉';
+
+                container.innerHTML += `
+                    <div class="flex items-center justify-between bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span>${badge}</span>
+                            <span class="font-bold text-white">${escapeHtml(p.name)}</span>
+                        </div>
+                        <div class="text-[10px] text-right">
+                            <span class="text-cyber-pink font-bold block">${p.drunkSips} bues</span>
+                            <span class="text-slate-400">${p.givenSips} données</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function replaySamePlayers() {
+            startGame();
+        }
+
+        function confirmResetToHome() {
+            if (confirm("Revenir à l'accueil et réinitialiser ?")) {
+                showScreen('setupScreen');
+            }
+        }
+
+        function resetToHome() {
+            showScreen('setupScreen');
+        }
+
+        function showScreen(id) {
+            ['setupScreen', 'memorizeScreen', 'gameScreen', 'endScreen'].forEach(s => {
+                document.getElementById(s).classList.add('hidden');
+            });
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        }
+
+        function openRulesModal() {
+            document.getElementById('rulesModal').classList.remove('hidden');
+        }
+
+        function closeRulesModal() {
+            document.getElementById('rulesModal').classList.add('hidden');
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
